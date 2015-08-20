@@ -22,6 +22,8 @@ Wiki detalhada para instalação, desenvolvimento e deploy:
 - Instalação:
 - Desenvolvimento:
 - Deploy no JBoss:
+- Testando a aplicação (Integração e Unitário):
+- Testando a aplicação no Browser
 
 
 
