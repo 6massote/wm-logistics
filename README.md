@@ -3,7 +3,7 @@
 A seguir estão descritos todos os passos e tecnologías utilizadas para o processo de configuração, desenvolvimento e deploy da aplicação.
 
 As tecnologias utilizadas foram:
-- Java e J2EE
+- Linguagem: Java
 - Framework Web MVC: Spring Framework 4
 - WebSerives: REST (Json)
 - J2EE Enterprise: EJB3, JMS, JPA
