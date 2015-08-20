@@ -9,3 +9,20 @@ As tecnologias utilizadas foram:
 - J2EE Enterprise: EJB3, JMS, JPA
 - Database: Neo4j (Graph) e PostegreSQL (Relational)
 - Application Server: JBoss Wildfly
+- Build: Maven 3
+ 
+Links para downloads:
+- Maven:
+- JBoss:
+- Neo4J:
+- Neo4j Driver:
+- PostegreSQL Driver:
+
+Wiki detalhada para instalação, desenvolvimento e deploy:
+- Instalação:
+- Desenvolvimento:
+- Deploy no JBoss:
+
+
+
+
