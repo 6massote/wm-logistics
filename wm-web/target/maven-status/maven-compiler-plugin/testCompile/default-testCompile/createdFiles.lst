@@ -1,0 +1,4 @@
+br/com/walmart/freight/itest/rest/AcceptanceTest.class
+br/com/walmart/freight/itest/rest/IntegrationTest.class
+br/com/walmart/freight/itest/rest/IntegrationTestFail.class
+br/com/walmart/freight/itest/rest/AbstractIntegrationTest.class
