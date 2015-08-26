@@ -16,7 +16,7 @@ Links para downloads:
 
 Wiki com motivação e todas as infos necessárias para:
 - Motivação: https://github.com/6massote/wm-logistics/wiki/1.-Motiva%C3%A7%C3%A3o
-- Estrutura do projeto: 2. Estrutura do projeto
+- Estrutura do projeto: https://github.com/6massote/wm-logistics/wiki/2.-Estrutura-do-projeto
 - Preparando ambiente e aplicação: https://github.com/6massote/wm-logistics/wiki/3.-Preparando-ambiente-e-aplica%C3%A7%C3%A3o
 - Testando a aplicação: https://github.com/6massote/wm-logistics/wiki/4.-Testando-a-aplica%C3%A7%C3%A3o
 
