@@ -7,7 +7,7 @@ public class Neo4jSessionFactory {
 	
 	static {
 		System.setProperty("username", "neo4j");
-		System.setProperty("password", "clapme@466");
+		System.setProperty("password", "neo4j");
 	}
 	
 	private final static SessionFactory sessionFactory = new SessionFactory("br.com.walmart.freight.entities.graph");

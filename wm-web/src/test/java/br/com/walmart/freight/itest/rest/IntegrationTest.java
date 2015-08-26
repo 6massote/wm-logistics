@@ -19,24 +19,41 @@ public class IntegrationTest extends AbstractIntegrationTest {
 
 	@Before
 	public void makeNodesAndRelationships() {		
-		final Set<RouteCity> routeCities = new HashSet<RouteCity>();
-		routeCities.add(new RouteCity("A", "B", 10f));
-		routeCities.add(new RouteCity("B", "D", 15f));
-		routeCities.add(new RouteCity("A", "C", 20f));
-		routeCities.add(new RouteCity("C", "D", 30f));
-		routeCities.add(new RouteCity("B", "E", 50f));
-		routeCities.add(new RouteCity("D", "E", 30f));
+		final Set<RouteCity> routeCitiesSP = new HashSet<RouteCity>();
+		routeCitiesSP.add(new RouteCity("A", "B", 10f));
+		routeCitiesSP.add(new RouteCity("B", "D", 15.5f));
+		routeCitiesSP.add(new RouteCity("A", "C", 20f));
+		routeCitiesSP.add(new RouteCity("C", "D", 30f));
+		routeCitiesSP.add(new RouteCity("B", "E", 50.5f));
+		routeCitiesSP.add(new RouteCity("D", "E", 30f));
+		routeCitiesSP.add(new RouteCity("F", "G", 20f));
+		routeCitiesSP.add(new RouteCity("D", "A", 30.5f));
 		
-		final RouteMap routeMap = new RouteMap("SP", routeCities);
+		final RouteMap routeMapSP = new RouteMap("SP", routeCitiesSP);
+		final Response responseSP = doRouteMapRequest(routeMapSP);
 		
-		final Response response = doRouteMapRequest(routeMap);
-		
-		assertEquals(200, response.getStatusCode());
+		assertEquals(200, responseSP.getStatusCode());
 
-		final JsonPath jsonPath = new JsonPath(response.asString());
+		final JsonPath jsonPathSP = new JsonPath(responseSP.asString());
 
-		assertEquals(true, jsonPath.get("ok"));
-		assertEquals("Maps populated in Graph...", jsonPath.get("messages[0]"));
+		assertEquals(true, jsonPathSP.get("ok"));
+		assertEquals("Maps populated in Graph...", jsonPathSP.get("messages[0]"));
+		
+		final Set<RouteCity> routeCitiesBH = new HashSet<RouteCity>();
+		
+		routeCitiesBH.add(new RouteCity("Q", "V", 40f));
+		routeCitiesBH.add(new RouteCity("H", "Z", 30f));
+		routeCitiesBH.add(new RouteCity("D", "G", 20f));
+		routeCitiesBH.add(new RouteCity("G", "S", 60f));
+		routeCitiesBH.add(new RouteCity("R", "E", 20f));
+		routeCitiesBH.add(new RouteCity("X", "H", 10f));
+		routeCitiesBH.add(new RouteCity("Y", "T", 10f));
+		routeCitiesBH.add(new RouteCity("D", "E", 20f));
+
+		final JsonPath jsonPathBH = new JsonPath(responseSP.asString());
+
+		assertEquals(true, jsonPathBH.get("ok"));
+		assertEquals("Maps populated in Graph...", jsonPathBH.get("messages[0]"));
 	}
 	
 	@Test
@@ -48,7 +65,7 @@ public class IntegrationTest extends AbstractIntegrationTest {
 		final JsonPath jsonPath = new JsonPath(response.asString());
 
 		assertEquals(true, jsonPath.get("ok"));
-		assertEquals(6.25f, jsonPath.getFloat("models[0].amount"), 0);
+		assertEquals(6.375f, jsonPath.getFloat("models[0].amount"), 0);
 		assertEquals("Freight calc success...", jsonPath.get("messages[0]"));		
 	}
 	
@@ -61,7 +78,7 @@ public class IntegrationTest extends AbstractIntegrationTest {
 		final JsonPath jsonPath = new JsonPath(response.asString());
 
 		assertEquals(true, jsonPath.get("ok"));
-		assertEquals(6.25f, jsonPath.getFloat("models[0].amount"), 0);
+		assertEquals(6.375f, jsonPath.getFloat("models[0].amount"), 0);
 		assertEquals("Freight calc success...", jsonPath.get("messages[0]"));	
 	}
 	

@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: br.com.walmart.freight.itest.rest.IntegrationTest
 -------------------------------------------------------------------------------
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.241 sec
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.421 sec

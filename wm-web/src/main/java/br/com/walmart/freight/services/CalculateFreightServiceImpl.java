@@ -10,8 +10,12 @@ import br.com.walmart.freight.models.Logistic;
 @Service("calculateFreightService")
 public class CalculateFreightServiceImpl implements CalculateFreightService {
 
-	public Freight baseOn(final Logistic logistic, final Float shortestPathWeight) throws Exception {
-		System.out.println(">>>> Calculate Freight base on Logistics: " + logistic.toString());
+	public Freight baseOn(final Logistic logistic, Float shortestPathWeight) throws Exception {
+		System.out.println(">>>> Calculate Freight base on Logistics");
+		
+		if (logistic == null || shortestPathWeight == null) {
+			return new Freight(-1f);
+		}
 		
 		final BigDecimal autonomy = new BigDecimal(logistic.getAutonomy());
 		final BigDecimal price = new BigDecimal(logistic.getPrice());
