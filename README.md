@@ -14,7 +14,7 @@ Links para downloads:
 - JBoss 9.0.1.FINAL: http://wildfly.org/downloads/
 - Neo4J Community: http://neo4j.com/download/
 
-Wiki (https://github.com/6massote/wm-logistics/wiki) detalhada para instalação, desenvolvimento e deploy:
+Wiki com motivação e todas as infos necessárias para:
 - Motivação: https://github.com/6massote/wm-logistics/wiki
 - Estrutura do projeto: https://github.com/6massote/wm-logistics/wiki/Estrutura-do-projeto
 - Preparando ambiente e aplicação: https://github.com/6massote/wm-logistics/wiki/Preparando-ambiente-e-aplica%C3%A7%C3%A3o
