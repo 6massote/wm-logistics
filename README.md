@@ -3,7 +3,7 @@
 A seguir estão descritos todos os passos e tecnologías utilizadas para o processo de criação, instalação, deploy e teste da aplicação.
 
 As tecnologias utilizadas foram:
-- Linguagem: Java 8
+- Linguagem: Java 6 (jdk 8)
 - Framework Web MVC: Spring Framework 4
 - WebSerives: REST (Json)
 - Database: Neo4j (Graph)
