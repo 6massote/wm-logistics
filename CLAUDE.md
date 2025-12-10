@@ -574,8 +574,938 @@ public class MyController {
 4. Access at: `http://localhost:8080/wm-logistics/`
 5. Test endpoints with tools like Postman or curl
 
+## AI Assistant Decision Trees
+
+### Should I Modify This Code?
+
+Use this decision tree before making any changes:
+
+```
+Is the change requested explicitly by the user?
+├─ YES: Proceed with caution
+│  └─ Does it require database changes?
+│     ├─ YES: Check Neo4j connection first
+│     └─ NO: Proceed
+└─ NO: Ask user for clarification
+
+Will this change affect multiple layers?
+├─ YES: Plan the change across all layers first
+└─ NO: Implement in appropriate layer only
+
+Is this a security-sensitive change?
+├─ YES: Review security guidelines below
+└─ NO: Proceed with implementation
+```
+
+### Should I Create a New File or Modify Existing?
+
+```
+Does a file already exist for this functionality?
+├─ YES: ALWAYS modify the existing file
+│  └─ Never create duplicates
+└─ NO: Is this a completely new feature?
+   ├─ YES: Create new files following naming conventions
+   └─ NO: Extend existing functionality
+```
+
+### What Layer Should Handle This Logic?
+
+```
+Is it HTTP request/response handling?
+├─ YES → Controller layer
+
+Is it data validation?
+├─ YES → Model layer (annotations)
+
+Is it formatting output?
+├─ YES → Presenter layer
+
+Is it orchestrating multiple services?
+├─ YES → Facade layer
+
+Is it business logic calculation?
+├─ YES → Service layer
+
+Is it database access or Cypher queries?
+├─ YES → Repository layer
+```
+
+## Security Best Practices ⚠️
+
+### Critical Security Issues to Avoid
+
+#### 1. **Cypher Injection Prevention** (HIGH PRIORITY)
+
+**❌ NEVER DO THIS** (Currently exists in `RouteQueryHelper`):
+```java
+// VULNERABLE TO INJECTION
+public static String buildRouteCityCreate(String map, String name) {
+    return String.format("CREATE (Location%s%s:Location {maps:'%s', name:'%s'})",
+        trimValue(name), trimValue(map), map, name);
+}
+```
+
+**✅ CORRECT APPROACH**:
+```java
+// Use parameterized queries
+public static String buildRouteCityCreate() {
+    return "CREATE (l:Location {maps: $map, name: $name})";
+}
+
+// In repository:
+Map<String, Object> params = new HashMap<>();
+params.put("map", map);
+params.put("name", name);
+session.query(query, params);
+```
+
+**Why this matters**: String concatenation in Cypher queries allows malicious input like:
+```
+map = "SP', name:'Hacked'})-[:ADMIN]->(:User {admin:true})//"
+```
+
+#### 2. **Input Validation Rules**
+
+Always validate:
+- **String lengths**: Prevent buffer overflow and DOS attacks
+- **Numeric ranges**: Prevent negative distances, zero autonomy
+- **Special characters**: Sanitize before database operations
+- **Null values**: Check before operations
+
+```java
+// Good validation example
+@NotEmpty(message = "error.logistic.map.not_empty")
+@Size(min = 1, max = 50, message = "error.logistic.map.invalid_size")
+@Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "error.logistic.map.invalid_chars")
+private String map;
+```
+
+#### 3. **Error Message Security**
+
+**❌ DON'T** expose internal details:
+```java
+catch (Exception e) {
+    return "Database error: " + e.getMessage(); // Exposes DB structure
+}
+```
+
+**✅ DO** use generic messages:
+```java
+catch (Exception e) {
+    logger.error("Database error", e); // Log internally
+    return "An error occurred processing your request"; // Generic to user
+}
+```
+
+### Security Checklist for AI Assistants
+
+Before committing code, verify:
+
+- [ ] No String concatenation in Cypher queries
+- [ ] All user inputs have validation annotations
+- [ ] No sensitive data in error messages
+- [ ] No hardcoded credentials or API keys
+- [ ] No `System.out.println()` with sensitive data
+- [ ] Exception details logged, not exposed to users
+- [ ] Numeric inputs checked for valid ranges
+- [ ] File paths validated (if any file operations)
+
+## Code Quality Standards
+
+### Code Quality Checklist
+
+Before submitting code, ensure:
+
+**Architecture & Design:**
+- [ ] Follows layered architecture (no layer skipping)
+- [ ] Uses interface + implementation pattern
+- [ ] Single Responsibility Principle applied
+- [ ] No circular dependencies
+- [ ] Proper separation of concerns
+
+**Code Standards:**
+- [ ] Meaningful variable and method names
+- [ ] Methods are < 30 lines (prefer < 20)
+- [ ] Classes are < 300 lines
+- [ ] No duplicate code (DRY principle)
+- [ ] Constants used instead of magic numbers
+
+**Error Handling:**
+- [ ] All exceptions properly caught and handled
+- [ ] Facade layer catches service exceptions
+- [ ] Meaningful error messages in FacadeContext
+- [ ] No swallowed exceptions
+- [ ] Proper logging at each layer
+
+**Testing:**
+- [ ] Unit tests for services (business logic)
+- [ ] Integration tests for endpoints
+- [ ] Test both success and failure scenarios
+- [ ] Test data setup is clean and repeatable
+- [ ] No hardcoded test data that assumes state
+
+**Documentation:**
+- [ ] Complex logic has comments explaining "why"
+- [ ] Public methods have clear purpose
+- [ ] Validation messages are descriptive
+- [ ] No commented-out code checked in
+
+### Performance Considerations
+
+#### Neo4j Query Optimization
+
+**❌ Inefficient**:
+```cypher
+// Scans all nodes
+MATCH (n) WHERE n.name = 'A' RETURN n
+```
+
+**✅ Efficient**:
+```cypher
+// Uses label index
+MATCH (n:Location {name: 'A'}) RETURN n
+```
+
+**Best Practices**:
+1. Always specify node labels in MATCH clauses
+2. Use indexes for frequently queried properties
+3. Limit relationship traversal depth with `*1..5`
+4. Use `LIMIT` for queries that might return many results
+5. Avoid `OPTIONAL MATCH` when not necessary
+6. Return only needed properties, not full nodes
+
+#### Repository Pattern Optimizations
+
+```java
+// Use appropriate depth
+private static final int DEPTH_LIST = 0;  // For lists, no relationships
+private static final int DEPTH_ENTITY = 1; // For single entity with one level
+private static final int DEPTH_DEEP = 2;   // For complex object graphs
+
+// Example
+public Iterable<T> findAll() {
+    return session.loadAll(getEntityType(), DEPTH_LIST); // Fast
+}
+```
+
+#### Caching Considerations
+
+Current architecture doesn't use caching. If adding cache:
+- Cache shortest path results (routes don't change often)
+- Use Spring `@Cacheable` annotation
+- Set appropriate TTL for cache entries
+- Invalidate cache when route maps are updated
+
+## Error Handling Patterns
+
+### Standard Error Flow
+
+```
+User Input with Errors
+    ↓
+Controller validates (@Valid + BindingResult)
+    ↓
+Returns 400 + validation errors in Presenter
+
+OR
+
+Controller passes to Facade
+    ↓
+Facade calls Service (wrapped in try-catch)
+    ↓
+Service throws Exception
+    ↓
+Facade catches, adds error to FacadeContext
+    ↓
+Controller checks response.isOk()
+    ↓
+Returns 400 + error message
+```
+
+### Error Handling Example
+
+```java
+// In Facade
+@Override
+public FacadeContext calculate(final Logistic logistic) {
+    final FacadeContext context = getFacadeContext();
+
+    try {
+        // Business logic
+        final Float distance = findShortestPath.baseOn(logistic);
+
+        // Validate business rules
+        if (distance == null || distance < 0) {
+            context.addError("No route found between cities");
+            return context;
+        }
+
+        final Freight freight = calculate.baseOn(logistic, distance);
+        context.addModel("freight", freight)
+               .addMessage("Freight calculated successfully");
+
+    } catch (IllegalArgumentException e) {
+        // Expected validation errors
+        context.addError(e.getMessage());
+    } catch (Exception e) {
+        // Unexpected errors - log and return generic message
+        logger.error("Error calculating freight", e);
+        context.addError("Unable to calculate freight at this time");
+    }
+
+    return context;
+}
+```
+
+### Standard Error Messages
+
+Follow this format for consistency:
+
+```java
+// Validation errors (field-level)
+"error.{domain}.{field}.{constraint}"
+// Example: "error.logistic.map.not_empty"
+
+// Business errors (operation-level)
+"error.{domain}.{operation}.{reason}"
+// Example: "error.freight.calculate.no_route_found"
+
+// System errors (generic)
+"error.system.{component}.{issue}"
+// Example: "error.system.database.connection_failed"
+```
+
+## Troubleshooting Guide
+
+### Common Issues and Solutions
+
+#### 1. Application Won't Start
+
+**Symptom**: WAR file deploys but application doesn't respond
+
+**Check:**
+```bash
+# Check Wildfly logs
+tail -f $WILDFLY_HOME/standalone/log/server.log
+
+# Check for port conflicts
+netstat -an | grep 8080
+
+# Verify Neo4j is running
+curl http://localhost:7474
+```
+
+**Common Causes:**
+- Neo4j not running → Start Neo4j first
+- Port 8080 already in use → Change Wildfly port or stop conflicting service
+- Spring context initialization error → Check logs for missing dependencies
+
+#### 2. "No route found" Errors
+
+**Symptom**: POST /freights returns "No route found between cities"
+
+**Debug Steps:**
+```bash
+# 1. Check if map exists
+curl -X POST http://localhost:8080/wm-logistics/freights \
+  -H "Content-Type: application/json" \
+  -d '{"map":"SP","from":"A","to":"D","autonomy":10,"price":2.5}'
+
+# 2. Verify data in Neo4j browser
+MATCH (n:Location {maps:'SP'}) RETURN n
+
+# 3. Check relationships
+MATCH (from:Location {maps:'SP', name:'A'})-[r:CONNECTED_TO]->(to:Location {maps:'SP', name:'D'})
+RETURN from, r, to
+```
+
+**Common Causes:**
+- Map name mismatch (case-sensitive)
+- Cities not created in route map
+- No path exists between cities
+- Typo in city names
+
+#### 3. Validation Errors Not Showing
+
+**Symptom**: Invalid input accepted or generic errors returned
+
+**Check:**
+```java
+// 1. Model has validation annotations
+@NotEmpty(message = "error.logistic.map.not_empty")
+private String map;
+
+// 2. Controller uses @Valid
+public ResponseEntity<LayerObject> calculate(
+    @Valid @RequestBody Logistic logistic,  // ← @Valid is crucial
+    BindingResult bindingResult) {
+
+// 3. BindingResult check happens BEFORE facade call
+if (bindingResult.hasErrors()) {
+    presenter.addErrors(BindingResultHumanErrorConverter.convert(
+        bindingResult.getAllErrors()));
+    return new ResponseEntity<>(presenter, HttpStatus.BAD_REQUEST);
+}
+```
+
+#### 4. Tests Failing
+
+**Symptom**: Tests pass individually but fail when run together
+
+**Solution:**
+```java
+@Before
+public void setUp() {
+    // Reset database before each test
+    resetDatabase();
+}
+
+@After
+public void tearDown() {
+    // Clean up test data
+    resetDatabase();
+}
+```
+
+**Common Causes:**
+- Test data not cleaned up between tests
+- Tests dependent on execution order
+- Shared state between test classes
+- Neo4j session not properly closed
+
+#### 5. Build Failures
+
+**Symptom**: `mvn clean install` fails
+
+**Check:**
+```bash
+# Java version
+java -version  # Should be 1.8.x
+
+# Maven version
+mvn -version   # Should be 3.x
+
+# Dependency issues
+mvn dependency:tree
+mvn dependency:resolve
+
+# Clean and rebuild
+mvn clean
+rm -rf ~/.m2/repository/br/com/walmart
+mvn install
+```
+
+### Debugging Techniques
+
+#### 1. Debugging Cypher Queries
+
+```java
+// In repository implementation, log queries before execution
+String query = RouteQueryHelper.buildCalculateShortestPath(map, from, to);
+System.out.println("Executing Cypher: " + query);
+
+Result result = session.query(query, Collections.emptyMap());
+System.out.println("Result count: " + result.queryResults().iterator().hasNext());
+```
+
+Test queries in Neo4j browser at `http://localhost:7474/browser/`
+
+#### 2. Debugging Spring DI Issues
+
+```java
+// Add to any Spring-managed class
+@PostConstruct
+public void init() {
+    System.out.println(">>> " + this.getClass().getSimpleName() + " initialized");
+    // Check injected dependencies
+    System.out.println(">>> Dependencies: " + (myService != null));
+}
+```
+
+#### 3. Debugging JSON Serialization
+
+```java
+// In controller, before returning response
+ObjectMapper mapper = new ObjectMapper();
+System.out.println("Response JSON: " + mapper.writeValueAsString(response));
+```
+
+#### 4. Remote Debugging
+
+```bash
+# Start Wildfly with debug enabled
+$WILDFLY_HOME/bin/standalone.sh --debug
+
+# In IDE, create Remote Debug configuration
+# Host: localhost
+# Port: 8787
+```
+
+### Performance Debugging
+
+```java
+// Add timing to facades
+@Override
+public FacadeContext calculate(final Logistic logistic) {
+    long startTime = System.currentTimeMillis();
+    final FacadeContext context = getFacadeContext();
+
+    try {
+        // ... business logic
+    } finally {
+        long duration = System.currentTimeMillis() - startTime;
+        System.out.println(">>> calculate() took " + duration + "ms");
+    }
+
+    return context;
+}
+```
+
+## Testing Best Practices
+
+### Test Naming Conventions
+
+```java
+// Pattern: methodName_scenario_expectedBehavior
+
+@Test
+public void calculate_validLogistic_returnsFreightAmount() { }
+
+@Test
+public void calculate_noRouteExists_returnsError() { }
+
+@Test
+public void create_emptyMapName_returnsValidationError() { }
+
+@Test
+public void findShortestPath_multipleRoutes_returnsMinimumDistance() { }
+```
+
+### Unit Test Template
+
+```java
+@RunWith(MockitoJUnitRunner.class)
+public class MyServiceImplTest {
+
+    @Mock
+    private MyRepository repository;
+
+    @InjectMocks
+    private MyServiceImpl service;
+
+    @Before
+    public void setUp() {
+        // Setup common test data
+    }
+
+    @Test
+    public void myMethod_happyPath_success() {
+        // Arrange
+        MyModel input = new MyModel("test");
+        when(repository.find(anyString())).thenReturn(new MyEntity());
+
+        // Act
+        Result result = service.myMethod(input);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("expected", result.getValue());
+        verify(repository, times(1)).find(anyString());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void myMethod_nullInput_throwsException() {
+        // Act
+        service.myMethod(null);
+    }
+}
+```
+
+### Integration Test Template
+
+```java
+public class MyFeatureIntegrationTest extends AbstractIntegrationTest {
+
+    @Before
+    public void setUp() {
+        // Reset database
+        doResetDatabase();
+
+        // Create test data
+        createTestRouteMap();
+    }
+
+    @Test
+    public void myEndpoint_validRequest_returns200() {
+        // Arrange
+        MyModel request = new MyModel("test");
+
+        // Act
+        Response response = given()
+            .contentType("application/json")
+            .body(request)
+        .when()
+            .post("/my-endpoint")
+        .then()
+            .extract().response();
+
+        // Assert
+        assertEquals(200, response.getStatusCode());
+
+        JsonPath json = new JsonPath(response.asString());
+        assertTrue(json.getBoolean("ok"));
+        assertNotNull(json.get("models[0].result"));
+    }
+
+    @Test
+    public void myEndpoint_invalidRequest_returns400() {
+        // Arrange
+        MyModel request = new MyModel(""); // Invalid
+
+        // Act
+        Response response = given()
+            .contentType("application/json")
+            .body(request)
+        .when()
+            .post("/my-endpoint")
+        .then()
+            .extract().response();
+
+        // Assert
+        assertEquals(400, response.getStatusCode());
+
+        JsonPath json = new JsonPath(response.asString());
+        assertFalse(json.getBoolean("ok"));
+        assertNotNull(json.get("errors"));
+    }
+}
+```
+
+### Test Data Best Practices
+
+```java
+// Create reusable test data builders
+public class TestDataBuilder {
+
+    public static Logistic createValidLogistic() {
+        return new Logistic("SP", "A", "D", 10.0f, 2.5f);
+    }
+
+    public static RouteMap createSimpleRouteMap() {
+        Set<RouteCity> routes = new HashSet<>();
+        routes.add(new RouteCity("A", "B", 10.0f));
+        routes.add(new RouteCity("B", "C", 15.0f));
+        return new RouteMap("SP", routes);
+    }
+
+    public static RouteMap createComplexRouteMap() {
+        // More complex scenarios
+    }
+}
+
+// Use in tests
+@Test
+public void test_something() {
+    Logistic logistic = TestDataBuilder.createValidLogistic();
+    // ... test logic
+}
+```
+
+## Common Pitfalls and Anti-Patterns
+
+### Anti-Pattern 1: Layer Violation
+
+**❌ DON'T**:
+```java
+@RestController
+public class BadController {
+    @Autowired
+    private MyRepository repository; // Skipping service/facade layers!
+
+    @PostMapping
+    public ResponseEntity<?> create(@RequestBody MyModel model) {
+        repository.save(model); // Business logic in controller!
+        return ResponseEntity.ok().build();
+    }
+}
+```
+
+**✅ DO**:
+```java
+@RestController
+public class GoodController {
+    @Autowired
+    private MyFacade facade; // Proper layer delegation
+
+    @PostMapping
+    public ResponseEntity<LayerObject> create(@Valid @RequestBody MyModel model,
+                                               BindingResult result) {
+        if (result.hasErrors()) {
+            // Handle validation
+        }
+        FacadeContext response = facade.create(model);
+        return response.isOk() ?
+            ResponseEntity.ok(response) :
+            ResponseEntity.badRequest().body(response);
+    }
+}
+```
+
+### Anti-Pattern 2: Swallowing Exceptions
+
+**❌ DON'T**:
+```java
+try {
+    // risky operation
+} catch (Exception e) {
+    // Silent failure - user never knows what happened!
+}
+```
+
+**✅ DO**:
+```java
+try {
+    // risky operation
+} catch (Exception e) {
+    logger.error("Operation failed: context details", e);
+    context.addError("User-friendly error message");
+}
+```
+
+### Anti-Pattern 3: God Objects
+
+**❌ DON'T**:
+```java
+// 1000+ line service that does everything
+public class FreightServiceImpl {
+    public Freight calculate() { }
+    public void validateMap() { }
+    public void optimizeRoute() { }
+    public void sendNotification() { }
+    public void generateReport() { }
+    // ... 50 more methods
+}
+```
+
+**✅ DO**:
+```java
+// Separate services with single responsibilities
+public class FreightCalculationService { }
+public class RouteOptimizationService { }
+public class NotificationService { }
+public class ReportGenerationService { }
+```
+
+### Anti-Pattern 4: Magic Numbers
+
+**❌ DON'T**:
+```java
+if (distance > 1000) { // What is 1000?
+    freight = freight * 0.9; // What is 0.9?
+}
+```
+
+**✅ DO**:
+```java
+private static final float MAX_DISTANCE_FOR_DISCOUNT = 1000.0f;
+private static final float LONG_DISTANCE_DISCOUNT = 0.9f;
+
+if (distance > MAX_DISTANCE_FOR_DISCOUNT) {
+    freight = freight * LONG_DISTANCE_DISCOUNT;
+}
+```
+
+### Anti-Pattern 5: Tight Coupling
+
+**❌ DON'T**:
+```java
+public class MyService {
+    private MyRepositoryImpl repository = new MyRepositoryImpl(); // Tight coupling!
+}
+```
+
+**✅ DO**:
+```java
+public class MyService {
+    @Autowired
+    private MyRepository repository; // Interface dependency
+}
+```
+
+## Quick Reference
+
+### HTTP Status Codes Used
+
+| Code | When to Use | Example |
+|------|-------------|---------|
+| 200 OK | Successful operation | Freight calculated successfully |
+| 400 Bad Request | Validation errors or business rule violations | Invalid map name, no route found |
+| 404 Not Found | Resource doesn't exist | (Not currently used) |
+| 500 Internal Server Error | Unexpected server errors | (Should be avoided, caught in facade) |
+
+### Response Format
+
+**Success Response:**
+```json
+{
+  "ok": true,
+  "models": [
+    { "freight": { "amount": 6.375 } }
+  ],
+  "messages": ["Freight calc success..."],
+  "errors": null
+}
+```
+
+**Error Response:**
+```json
+{
+  "ok": false,
+  "models": null,
+  "messages": null,
+  "errors": [
+    "error.logistic.map.not_empty",
+    "error.logistic.from.not_empty"
+  ]
+}
+```
+
+### Key Files Reference
+
+| File | Purpose | When to Modify |
+|------|---------|----------------|
+| `RouteQueryHelper` | Cypher query builders | Adding new query patterns |
+| `GenericRepository` | Base repository CRUD | Rarely (affects all repos) |
+| `AbstractFacade` | Base facade functionality | Rarely (affects all facades) |
+| `LayerObject` | Response structure | Never (core framework) |
+| `FacadeContext` | Facade response wrapper | Never (core framework) |
+| `Neo4jSessionFactory` | Database connection | Only for connection changes |
+
+### Validation Annotations Quick Reference
+
+```java
+@NotNull        // Cannot be null
+@NotEmpty       // Cannot be null or empty (String, Collection)
+@NotBlank       // Cannot be null, empty, or whitespace only
+@Size(min, max) // Length constraints
+@Min(value)     // Minimum numeric value
+@Max(value)     // Maximum numeric value
+@DecimalMin     // Minimum decimal value
+@DecimalMax     // Maximum decimal value
+@Pattern(regex) // Must match regex pattern
+@Email          // Must be valid email format
+@Valid          // Cascade validation to nested objects
+```
+
+### Useful Cypher Queries for Debugging
+
+```cypher
+// Count all nodes
+MATCH (n) RETURN count(n)
+
+// See all route maps
+MATCH (n:Location) RETURN DISTINCT n.maps
+
+// See all locations in a map
+MATCH (n:Location {maps: 'SP'}) RETURN n
+
+// See all connections
+MATCH (from)-[r:CONNECTED_TO]->(to) RETURN from.name, r.distance, to.name
+
+// Find shortest path manually
+MATCH (from:Location {maps:'SP', name:'A'}),
+      (to:Location {maps:'SP', name:'D'}),
+      path = shortestPath((from)-[r:CONNECTED_TO*]->(to))
+RETURN path, reduce(distance=0, rel in relationships(path) | distance+rel.distance) AS totalDistance
+
+// Delete everything (CAREFUL!)
+MATCH (n) OPTIONAL MATCH (n)-[r]->() DELETE n, r
+```
+
+### curl Examples for Testing
+
+```bash
+# Create route map
+curl -X POST http://localhost:8080/wm-logistics/maps \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "SP",
+    "routes": [
+      {"from": "A", "to": "B", "distance": 10.0},
+      {"from": "B", "to": "D", "distance": 15.5}
+    ]
+  }'
+
+# Calculate freight
+curl -X POST http://localhost:8080/wm-logistics/freights \
+  -H "Content-Type: application/json" \
+  -d '{
+    "map": "SP",
+    "from": "A",
+    "to": "D",
+    "autonomy": 10.0,
+    "price": 2.5
+  }'
+
+# Reset database (testing only)
+curl -X POST http://localhost:8080/wm-logistics/database/reset
+```
+
+## For AI Assistants: Before You Start Coding
+
+### Pre-Coding Checklist
+
+1. **Understand the Request**:
+   - [ ] What layer(s) does this affect?
+   - [ ] Is this new functionality or modification?
+   - [ ] What are the acceptance criteria?
+
+2. **Read Existing Code**:
+   - [ ] Read the files you'll modify
+   - [ ] Understand current patterns
+   - [ ] Check for similar implementations
+
+3. **Plan the Changes**:
+   - [ ] List all files to create/modify
+   - [ ] Identify dependencies between changes
+   - [ ] Consider backwards compatibility
+
+4. **Security Review**:
+   - [ ] Any user input involved?
+   - [ ] Any database queries?
+   - [ ] Any sensitive data handling?
+
+5. **Testing Strategy**:
+   - [ ] What tests need to be written?
+   - [ ] What tests need to be updated?
+   - [ ] How will you verify it works?
+
+### Post-Coding Checklist
+
+1. **Code Quality**:
+   - [ ] Follows existing patterns and conventions
+   - [ ] No layer violations
+   - [ ] Proper error handling
+   - [ ] No security vulnerabilities
+
+2. **Testing**:
+   - [ ] Unit tests written and passing
+   - [ ] Integration tests written and passing
+   - [ ] Manual testing completed
+
+3. **Documentation**:
+   - [ ] Complex logic commented
+   - [ ] CLAUDE.md updated if patterns changed
+   - [ ] Validation messages added
+
+4. **Build & Deploy**:
+   - [ ] `mvn clean install` passes
+   - [ ] No compilation warnings
+   - [ ] Application starts successfully
+   - [ ] Endpoints respond as expected
+
 ---
 
 **Last Updated**: 2025-12-10
-**Version**: 1.0
+**Version**: 2.0 (Enhanced with AI best practices)
 **Maintained by**: AI Assistant (Claude)
