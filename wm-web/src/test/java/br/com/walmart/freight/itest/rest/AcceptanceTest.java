@@ -1,15 +1,15 @@
 package br.com.walmart.freight.itest.rest;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import com.jayway.restassured.path.json.JsonPath;
-import com.jayway.restassured.response.Response;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
 
 import br.com.walmart.freight.models.Logistic;
 import br.com.walmart.freight.models.RouteCity;
@@ -17,8 +17,8 @@ import br.com.walmart.freight.models.RouteMap;
 
 public class AcceptanceTest extends AbstractIntegrationTest {
 
-	@Before
-	public void makeNodesAndRelationships() {		
+	@BeforeEach
+	void makeNodesAndRelationships() {		
 		final Set<RouteCity> routeCities = new HashSet<RouteCity>();
 		routeCities.add(new RouteCity("A", "B", 10f));
 		routeCities.add(new RouteCity("B", "D", 15f));
@@ -40,7 +40,7 @@ public class AcceptanceTest extends AbstractIntegrationTest {
 	}
 	
 	@Test
-	public void callFreightCalculate() {
+	void callFreightCalculate() {
 		final Response response = this.doFreightRequest(new Logistic("SP", "A", "D", 10f, 2.5f));
 
 		assertEquals(200, response.getStatusCode());

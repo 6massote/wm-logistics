@@ -3,9 +3,9 @@ package br.com.walmart.freight.models;
 import java.io.Serializable;
 import java.util.Set;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 
-import org.hibernate.validator.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 
 public class RouteMap implements Serializable {
 
@@ -13,9 +13,8 @@ public class RouteMap implements Serializable {
 	
 	@NotEmpty(message = "error.route_map.name.not_empty")
 	private String name;
-	@Valid
 	@NotEmpty(message = "error.route_map.routes.not_empty")
-	private Set<RouteCity> routes;
+	private Set<@Valid RouteCity> routes;
 	
 	public RouteMap() {
 	}

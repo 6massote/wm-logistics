@@ -1,21 +1,30 @@
 package br.com.walmart.database.repository;
 
-import java.sql.SQLException;
-import java.sql.Statement;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
-import org.springframework.stereotype.Service;
-
-import br.com.walmart.core.factories.Neo4jConnectionFactory;
 import br.com.walmart.freight.repositories.RouteQueryHelper;
 
-@Service("neo4jRepository")
+@Repository("neo4jRepository")
 public class Neo4jRepositoryImpl implements Neo4jRepository {
-	
-	public void resetNodesAndRelationships() throws SQLException {
-		
-		final Statement stmt = Neo4jConnectionFactory.getStatement();
-		stmt.executeQuery(RouteQueryHelper.buildDestroyAllNodesAndRelationships());		
-		
+
+	@Autowired
+	private Driver driver;
+
+	@Override
+	public void resetNodesAndRelationships() {
+		try (Session session = driver.session()) {
+			session.executeWrite(tx -> tx.run(RouteQueryHelper.DESTROY_ALL_NODES_AND_RELATIONSHIPS).consume());
+		}
+	}
+
+	@Override
+	public void createIndexes() {
+		try (Session session = driver.session()) {
+			session.run(RouteQueryHelper.CREATE_LOCATION_INDEX).consume();
+		}
 	}
 
 }

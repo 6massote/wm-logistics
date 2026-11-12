@@ -1,9 +1,10 @@
 package br.com.walmart.freight.repositories;
 
-import java.sql.SQLException;
-
 public interface RouteCityRepository {
 
-	public abstract boolean createOrUpdateBy(String map, String name) throws SQLException;
-	
+	/**
+	 * @return true when the city did not exist in the map and was created
+	 */
+	boolean createOrUpdateBy(String map, String name);
+
 }

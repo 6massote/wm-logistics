@@ -1,45 +1,44 @@
 package br.com.walmart.freight.repositories;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.util.List;
+import java.util.Map;
 
-import org.springframework.stereotype.Service;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
-import br.com.walmart.core.factories.Neo4jConnectionFactory;
-
-@Service("routeDistanceRespository")
+@Repository("routeDistanceRespository")
 public class RouteDistanceRepositoryImpl implements RouteDistanceRepository {
 
+	@Autowired
+	private Driver driver;
+
 	@Override
-	public Boolean createOrUpdateBy(String map, String from, String to, String distance) throws SQLException {
-		
-		final Statement stmt = Neo4jConnectionFactory.getStatement();
-		
-		ResultSet rs = stmt.executeQuery(RouteQueryHelper.buildRouteDistanceFind(map, from, to, distance));
-		if (rs.next() && rs.getInt("count(r)") > 0) {
-			stmt.executeQuery(RouteQueryHelper.buildRouteDistanceUpdate(map, from, to, distance));
-			return false;
+	public boolean createOrUpdateBy(String map, String from, String to, Float distance) {
+		// Float.toString keeps 0.1f as 0.1 instead of the widened 0.10000000149...
+		final Map<String, Object> params = Map.of(
+				"map", map, "from", from, "to", to, "distance", Double.valueOf(distance.toString()));
+
+		try (Session session = driver.session()) {
+			return session.executeWrite(tx -> tx
+					.run(RouteQueryHelper.ROUTE_DISTANCE_MERGE, params)
+					.consume()
+					.counters()
+					.relationshipsCreated() > 0);
 		}
-		
-		stmt.executeQuery(RouteQueryHelper.buildRouteDistanceCreate(map, from, to, distance));
-	    
-	    return true;
-	    
 	}
-	
+
 	@Override
-	public Float calculateShortestPathBy(String map, String from, String to) throws SQLException {
-		
-		final Statement stmt = Neo4jConnectionFactory.getStatement();
-		
-		ResultSet rs = stmt.executeQuery(RouteQueryHelper.buildCalculateShortestPath(map, from, to));
-		if (rs.next() && rs.getFloat("totalDistance") >= 0f) {
-			return rs.getFloat("totalDistance");
-		} 
-		
-		return -1f;
-		
+	public List<RouteEdge> findAllBy(String map) {
+		try (Session session = driver.session()) {
+			return session.executeRead(tx -> tx
+					.run(RouteQueryHelper.FIND_ROUTES_BY_MAP, Map.<String, Object>of("map", map))
+					.list(record -> new RouteEdge(
+							record.get("from").asString(),
+							record.get("to").asString(),
+							record.get("distance").asDouble())));
+		}
 	}
 
 }
