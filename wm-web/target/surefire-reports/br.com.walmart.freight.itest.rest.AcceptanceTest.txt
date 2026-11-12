@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: br.com.walmart.freight.itest.rest.AcceptanceTest
--------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.556 s -- in br.com.walmart.freight.itest.rest.AcceptanceTest
