@@ -1,60 +1,32 @@
 package br.com.walmart.freight.repositories;
 
-public class RouteQueryHelper {
+/**
+ * Cypher statements. All user input is passed as query parameters ($map, $name, ...),
+ * never concatenated into the text, so it cannot change the shape of the query.
+ */
+public final class RouteQueryHelper {
 
-	public static String buildDestroyAllNodesAndRelationships() {
-		return "MATCH (n) OPTIONAL MATCH (n)-[r]->() DELETE n, r";
+	public static final String DESTROY_ALL_NODES_AND_RELATIONSHIPS = "MATCH (n) DETACH DELETE n";
+
+	public static final String CREATE_LOCATION_INDEX =
+			"CREATE INDEX location_maps_name IF NOT EXISTS FOR (l:Location) ON (l.maps, l.name)";
+
+	public static final String ROUTE_CITY_MERGE =
+			"MERGE (l:Location {maps: $map, name: $name})";
+
+	public static final String ROUTE_DISTANCE_MERGE =
+			"MATCH (from:Location {maps: $map, name: $from}), (to:Location {maps: $map, name: $to}) "
+			+ "MERGE (from)-[r:CONNECTED_TO]->(to) "
+			+ "SET r.distance = $distance";
+
+	public static final String CALCULATE_SHORTEST_PATH =
+			"MATCH (from:Location {maps: $map, name: $from}), (to:Location {maps: $map, name: $to}), "
+			+ "path = (from)-[rels:CONNECTED_TO*]->(to) "
+			+ "RETURN reduce(distance = 0.0, r IN rels | distance + r.distance) AS totalDistance "
+			+ "ORDER BY totalDistance ASC "
+			+ "LIMIT 1";
+
+	private RouteQueryHelper() {
 	}
-	
-	public static String buildRouteCityCreate(String map, String name) {
-		return String.format("CREATE (Location%s%s:Location {maps:'%s', name:'%s'})", trimValue(name), trimValue(map), map, name);
-	}
-	
-	public static String buildRouteCityFind(String map, String name) {
-		String query = String.format("MATCH (r:Location {maps:'%s', name:'%s'})", map, name);
-		query = query.concat(" RETURN count(r)");
-		
-		return query;
-	}
-	
-	public static String buildRouteDistanceCreate(String map, String from, String to, String distance) {
-		String query = String.format("MATCH (from:Location {maps:'%s', name:'%s'}),(to:Location {maps:'%s', name:'%s'})", map, from, map, to);
-				
-	    query = query.concat(" CREATE");
-	    query = query.concat(String.format("(from)-[:CONNECTED_TO { distance: %s }]->(to)", Float.valueOf(distance)));
-	    query = query.concat(" RETURN from, to");
-	    
-	    return query;
-	}
-	
-	public static String buildRouteDistanceUpdate(String map, String from, String to, String distance) {
-		String query = String.format("MATCH (from:Location {name:'%s', maps:'%s'})-[r:CONNECTED_TO]->(to:Location {name:'%s', maps:'%s'})", from, map, to, map);
-		query = query.concat(String.format(" SET r.distance = %s", Float.valueOf(distance)));
-		query = query.concat(" RETURN count(r)");
-		
-		return query;
-	}
-	
-	public static String buildRouteDistanceFind(String map, String from, String to, String distance) {
-		String query = String.format("MATCH (from:Location {maps:'%s', name:'%s'})-[r:CONNECTED_TO]->(to:Location {maps:'%s', name:'%s'})", map, from, map, to);
-		query = query.concat("RETURN count(r)");
-		
-		return query;
-	}
-	
-	public static String buildCalculateShortestPath(String map, String from, String to) {
-		String query = String.format("MATCH (from:Location {maps:'%s', name:'%s'}),(to:Location {maps:'%s', name:'%s'}),", map, from, map, to);
-		query = query.concat(" path = (from)-[rels:CONNECTED_TO*]->(to)");
-		query = query.concat(" RETURN");
-		query = query.concat(" reduce(distance=0, r in rels | distance+r.distance) AS totalDistance");
-		query = query.concat(" ORDER BY totalDistance ASC");
-		query = query.concat(" LIMIT 1");
-		
-		return query;
-	}
-	
-	private static String trimValue(Object value) {
-		return value != null ? value.toString().replace(" ", "") : "";
-	}
-	
+
 }

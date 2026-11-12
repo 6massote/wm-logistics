@@ -15,21 +15,18 @@
 ## Technology Stack
 
 ### Core Technologies
-- **Language**: Java 6 (JDK 8)
-- **Framework**: Spring Framework 4.2.0 (Spring MVC)
-- **Database**: Neo4j 2.0.3 (Graph Database)
-  - OGM (Object-Graph Mapping): Neo4j-OGM 1.1.1
-  - JDBC: Neo4j-JDBC 2.0.2
-- **Application Server**: JBoss Wildfly 9.0.1
+- **Language**: Java 21 (LTS)
+- **Framework**: Spring Boot 4.1 (Spring Framework 7, Spring MVC), executable jar with embedded Tomcat
+- **Database**: Neo4j 5 Community (Graph Database), official Java driver over Bolt, parameterized Cypher
+- **Runtime**: Docker + Docker Compose (`compose.yaml`, `Dockerfile`)
 - **Build Tool**: Maven 3
-- **Web Services**: REST with JSON (Jackson 2.5.3)
+- **Web Services**: REST with JSON (Jackson 3, managed by Spring Boot)
 
 ### Key Dependencies
-- **Validation**: Hibernate Validator 5.1.3
+- **Validation**: Jakarta Bean Validation (Hibernate Validator, managed by Spring Boot)
 - **Testing**:
-  - JUnit 4.10 (unit tests)
-  - REST Assured 2.5.0 (integration tests)
-- **JSON Processing**: Jackson Databind, Jackson-JSOG (for circular reference handling)
+  - JUnit 5 (unit tests)
+  - REST Assured 6 + Testcontainers (integration tests against a real Neo4j 5 in Docker)
 
 ## Architecture
 
@@ -47,7 +44,7 @@ The application follows a strict layered architecture with clear separation of c
 ├─────────────────────────────────────┤
 │   Services (Business Logic)         │  @Service, interface + impl pattern
 ├─────────────────────────────────────┤
-│   Repositories (Data Access)        │  extends GenericRepository<T>
+│   Repositories (Data Access)        │  Neo4j Driver + Cypher
 ├─────────────────────────────────────┤
 │   Entities (Graph Models)           │  @NodeEntity, @RelationshipEntity
 ├─────────────────────────────────────┤
@@ -81,14 +78,12 @@ The application follows a strict layered architecture with clear separation of c
 
 5. **Repositories** (`br.com.walmart.*.repositories`)
    - Data access and persistence
-   - Extend `GenericRepository<T>`
-   - Execute Cypher queries for Neo4j
-   - Implement `Repository<T>` interface
+   - Inject the Neo4j `Driver` and run parameterized Cypher (statements live in `RouteQueryHelper`)
+   - Annotate implementations with `@Repository`
 
-6. **Entities** (`br.com.walmart.*.entities.graph`)
-   - Neo4j graph entities
-   - Annotated with `@NodeEntity` or `@RelationshipEntity`
-   - Extend `GraphEntity`
+6. **Graph model**
+   - There are no OGM entities anymore: nodes (`:Location {maps, name}`) and relationships
+     (`-[:CONNECTED_TO {distance}]->`) are written/read directly with Cypher in the repositories
 
 7. **Models** (`br.com.walmart.*.models`)
    - Domain objects (DTOs)
@@ -151,7 +146,6 @@ wm-logistics/
    - Facades: `*Facade` interface + `*FacadeImpl` implementation
    - Repositories: `*Repository` interface + `*RepositoryImpl` implementation
    - Models: Domain name (e.g., `Logistic`, `RouteMap`)
-   - Entities: `*GraphEntity` (e.g., `RouteCityGraphEntity`)
    - Presenters: `*Presenter` (e.g., `FreightPresenter`)
 
 2. **Interface + Implementation Pattern**:
@@ -177,10 +171,9 @@ wm-logistics/
    - Return HTTP 200 for success, HTTP 400 for validation/business errors
 
 6. **Repository Pattern**:
-   - All repositories extend `GenericRepository<T>`
-   - Implement `getEntityType()` method to return entity class
-   - Use Neo4j `Session` for database operations
-   - Depth parameters: `DEPTH_LIST = 0`, `DEPTH_ENTITY = 1`
+   - Repositories are plain `@Repository` classes behind an interface (no base class)
+   - Open `driver.session()` in try-with-resources and use `executeRead` / `executeWrite`
+   - Always pass user input as Cypher parameters (`$map`), never concatenate it into the query
 
 ### Package Organization
 
@@ -229,24 +222,26 @@ POST /database/reset
 ### Setting Up Development Environment
 
 1. **Prerequisites**:
-   - JDK 8 installed
-   - Maven 3 installed
-   - Neo4j Community Edition running
-   - JBoss Wildfly 9.0.1 application server
+   - JDK 21 and Maven 3 (only to build/run outside Docker)
+   - Docker with Compose (runs Neo4j, and optionally the app; the integration tests need it too)
 
 2. **Neo4j Configuration**:
-   - Default connection handled by `Neo4jConnectionFactory`
-   - Connection factory uses singleton pattern
-   - Session management via `Neo4jSessionFactory`
+   - Spring Boot auto-configures the `org.neo4j.driver.Driver` bean from `spring.neo4j.*`
+     (`SPRING_NEO4J_URI`, `SPRING_NEO4J_AUTHENTICATION_USERNAME/PASSWORD`)
+   - Repositories open a short-lived `Session` per call and use `executeRead`/`executeWrite`
+   - `Neo4jSchemaInitializer` creates the `Location(maps, name)` index at startup
+   - `POST /core/database/reset/neo4j` only exists when `wm.database-reset.enabled=true`
 
-3. **Build Project**:
+3. **Run everything with Docker**:
    ```bash
-   mvn clean install
+   docker compose up --build   # API on :8080/wm-logistics, Neo4j Browser on :7474
    ```
 
-4. **Deploy to Wildfly**:
+4. **Run only Neo4j in Docker and the app with Maven**:
    ```bash
-   mvn wildfly:deploy
+   docker compose up -d neo4j
+   SPRING_NEO4J_AUTHENTICATION_PASSWORD=wm-logistics-dev WM_DATABASE_RESET_ENABLED=true \
+     mvn -pl wm-web spring-boot:run
    ```
 
 ### Making Changes
@@ -267,18 +262,15 @@ POST /database/reset
    - Call service from facade layer
 
 3. **Working with Neo4j**:
-   - Create graph entities in `*.entities.graph` package
-   - Use `@NodeEntity` for nodes, `@RelationshipEntity` for relationships
-   - Extend `GraphEntity` base class
-   - Write Cypher queries in repository layer
-   - Use `session.query()` for custom queries
+   - Write Cypher in the repository layer (constants in `RouteQueryHelper`), parameterized
+   - Use `MERGE` for idempotent writes and `result.consume().counters()` to learn what was created
 
 ## Testing Strategy
 
 ### Unit Tests (`utest` package)
 - Located in `src/test/java/.../utest/`
 - Test individual service methods in isolation
-- Use JUnit 4
+- Use JUnit 5 (`org.junit.jupiter.api`)
 - Mock dependencies as needed
 - Example: `CalculateFreightServiceImplTest`
 
@@ -367,7 +359,7 @@ The application uses Cypher queries for graph operations. Key patterns used:
    - WAR packaging
    - Spring Framework dependencies
    - Neo4j dependencies and custom repository
-   - Wildfly Maven plugin configuration
+   - spring-boot-maven-plugin (executable jar)
 
 ### Build Commands
 ```bash
@@ -377,19 +369,16 @@ mvn clean install
 # Skip tests
 mvn clean install -DskipTests
 
-# Deploy to Wildfly
-mvn wildfly:deploy
-
-# Undeploy from Wildfly
-mvn wildfly:undeploy
-
-# Package only
+# Package only (executable jar)
 mvn package
+
+# Whole stack in Docker
+docker compose up --build
 ```
 
 ### Build Output
-- Final artifact: `wm-logistics.war` (in `wm-web/target/`)
-- Deployed to Wildfly's deployment directory
+- Final artifact: `wm-logistics.jar` (in `wm-web/target/`), run with `java -jar`
+- Docker image built from the root `Dockerfile`
 
 ## Important Notes for AI Assistants
 
@@ -426,24 +415,26 @@ public class MyModel implements Serializable {
     // getters, setters
 }
 
-// 2. Graph Entity (if database needed)
-@NodeEntity
-public class MyGraphEntity extends GraphEntity {
-    // fields
-}
+// 2. (no entity classes: the graph is read/written with Cypher)
 
 // 3. Repository Interface & Implementation
-public interface MyRepository extends Repository<MyGraphEntity> {
-    MyGraphEntity findByField(String field);
+public interface MyRepository {
+    boolean existsByField(String field);
 }
 
-public class MyRepositoryImpl extends GenericRepository<MyGraphEntity>
-        implements MyRepository {
+@Repository
+public class MyRepositoryImpl implements MyRepository {
+    @Autowired
+    private Driver driver;
+
     @Override
-    public Class<MyGraphEntity> getEntityType() {
-        return MyGraphEntity.class;
+    public boolean existsByField(String field) {
+        try (Session session = driver.session()) {
+            return session.executeRead(tx -> tx
+                .run("MATCH (n:Location {name: $field}) RETURN count(n) > 0 AS found", Map.of("field", field))
+                .single().get("found").asBoolean());
+        }
     }
-    // custom methods
 }
 
 // 4. Service Interface & Implementation
@@ -562,16 +553,14 @@ public class MyController {
 4. Add unit tests in `utest` package
 
 ### Debugging Neo4j Issues
-1. Check `Neo4jConnectionFactory` for connection settings
-2. Verify Cypher queries in repository implementations
-3. Use Neo4j browser to test queries manually
-4. Check session management in `Neo4jSessionFactory`
+1. Check `spring.neo4j.*` / `SPRING_NEO4J_*` settings (URI is `bolt://`, not `http://`; Neo4j 5 needs a password of 8+ characters)
+2. Verify Cypher queries in `RouteQueryHelper` and the repository implementations
+3. Use Neo4j browser (http://localhost:7474) to test queries manually
+4. Check `docker compose logs neo4j app`
 
 ### Running the Application
-1. Start Neo4j database
-2. Start Wildfly application server
-3. Deploy application: `mvn wildfly:deploy`
-4. Access at: `http://localhost:8080/wm-logistics/`
+1. `docker compose up --build` (Neo4j + app), or `docker compose up -d neo4j` and `mvn -pl wm-web spring-boot:run`
+2. Access at: `http://localhost:8080/wm-logistics/`
 5. Test endpoints with tools like Postman or curl
 
 ## AI Assistant Decision Trees
@@ -881,12 +870,12 @@ Follow this format for consistency:
 
 #### 1. Application Won't Start
 
-**Symptom**: WAR file deploys but application doesn't respond
+**Symptom**: Container or jar starts but the application doesn't respond
 
 **Check:**
 ```bash
-# Check Wildfly logs
-tail -f $WILDFLY_HOME/standalone/log/server.log
+# Check application logs
+docker compose logs -f app
 
 # Check for port conflicts
 netstat -an | grep 8080
@@ -897,7 +886,7 @@ curl http://localhost:7474
 
 **Common Causes:**
 - Neo4j not running → Start Neo4j first
-- Port 8080 already in use → Change Wildfly port or stop conflicting service
+- Port 8080 already in use → Change `server.port` or stop the conflicting service
 - Spring context initialization error → Check logs for missing dependencies
 
 #### 2. "No route found" Errors
@@ -1033,12 +1022,12 @@ System.out.println("Response JSON: " + mapper.writeValueAsString(response));
 #### 4. Remote Debugging
 
 ```bash
-# Start Wildfly with debug enabled
-$WILDFLY_HOME/bin/standalone.sh --debug
+# Start the jar with the debug agent enabled
+java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -jar wm-web/target/wm-logistics.jar
 
 # In IDE, create Remote Debug configuration
 # Host: localhost
-# Port: 8787
+# Port: 5005
 ```
 
 ### Performance Debugging
@@ -1375,11 +1364,10 @@ public class MyService {
 | File | Purpose | When to Modify |
 |------|---------|----------------|
 | `RouteQueryHelper` | Cypher query builders | Adding new query patterns |
-| `GenericRepository` | Base repository CRUD | Rarely (affects all repos) |
 | `AbstractFacade` | Base facade functionality | Rarely (affects all facades) |
 | `LayerObject` | Response structure | Never (core framework) |
 | `FacadeContext` | Facade response wrapper | Never (core framework) |
-| `Neo4jSessionFactory` | Database connection | Only for connection changes |
+| `application.properties` | Neo4j URI, context path, feature flags | Only for configuration changes |
 
 ### Validation Annotations Quick Reference
 

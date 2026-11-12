@@ -1,5 +1,6 @@
-/Users/clapme/workspace/codes/java/jobs/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/itest/rest/AcceptanceTest.java
-/Users/clapme/workspace/codes/java/jobs/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/itest/rest/AbstractIntegrationTest.java
-/Users/clapme/workspace/codes/java/jobs/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/utest/CalculateFreightServiceImplTest.java
-/Users/clapme/workspace/codes/java/jobs/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/itest/rest/IntegrationTestFail.java
-/Users/clapme/workspace/codes/java/jobs/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/itest/rest/IntegrationTest.java
+/home/user/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/itest/rest/AbstractIntegrationTest.java
+/home/user/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/itest/rest/AcceptanceTest.java
+/home/user/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/itest/rest/IntegrationFailTest.java
+/home/user/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/itest/rest/IntegrationTest.java
+/home/user/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/itest/rest/Neo4jContainerConfig.java
+/home/user/wm-logistics/wm-web/src/test/java/br/com/walmart/freight/utest/CalculateFreightServiceImplTest.java

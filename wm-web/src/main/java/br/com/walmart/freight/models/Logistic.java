@@ -2,10 +2,10 @@ package br.com.walmart.freight.models;
 
 import java.io.Serializable;
 
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 
-import org.hibernate.validator.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 
 public class Logistic implements Serializable {
 
@@ -18,7 +18,7 @@ public class Logistic implements Serializable {
 	@NotEmpty(message = "error.logistic.to.not_empty")
 	private String 	to;
 	@NotNull(message = "error.logistic.autonomy.not_null")
-	@DecimalMin(value = "0.00", message = "error.logistic.autonomy.min_value")
+	@DecimalMin(value = "0.00", inclusive = false, message = "error.logistic.autonomy.min_value")
 	private Float 	autonomy;
 	@NotNull(message = "error.logistic.price.not_null")
 	@DecimalMin(value = "0.00", message = "error.logistic.price.min_value")

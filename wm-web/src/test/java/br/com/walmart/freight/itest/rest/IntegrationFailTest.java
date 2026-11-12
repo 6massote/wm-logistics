@@ -1,26 +1,26 @@
 package br.com.walmart.freight.itest.rest;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import com.jayway.restassured.path.json.JsonPath;
-import com.jayway.restassured.response.Response;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
 
 import br.com.walmart.freight.models.Logistic;
 import br.com.walmart.freight.models.RouteCity;
 import br.com.walmart.freight.models.RouteMap;
 
-public class IntegrationTestFail extends AbstractIntegrationTest {
+public class IntegrationFailTest extends AbstractIntegrationTest {
 
 	@Test
-	public void callPopulateRouteMapFail() {		
+	void callPopulateRouteMapFail() {		
 		final Set<RouteCity> routeCities = new HashSet<RouteCity>();
 		final RouteMap routeMap = new RouteMap("", routeCities);
 		
@@ -39,7 +39,7 @@ public class IntegrationTestFail extends AbstractIntegrationTest {
 	}
 	
 	@Test
-	public void callFreightCalculateValidationFail() {
+	void callFreightCalculateValidationFail() {
 		final Response response = this.doFreightRequest(new Logistic("", "", "", null, null));
 		
 		assertEquals(400, response.getStatusCode());

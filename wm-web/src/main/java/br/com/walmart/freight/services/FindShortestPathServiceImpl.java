@@ -11,13 +11,9 @@ public class FindShortestPathServiceImpl implements FindShortestPathService {
 
 	@Autowired
 	private RouteDistanceRepository routeDistanceRepository;
-	
-	public Float baseOn(Logistic logistic) throws Exception {
-		System.out.println(">>>> Logistics: " + logistic.toString());
-		
-		final Float shortestPath = routeDistanceRepository
-				.calculateShortestPathBy(logistic.getMap(), logistic.getFrom(), logistic.getTo());
-		
-		return shortestPath;	
+
+	@Override
+	public Float baseOn(Logistic logistic) {
+		return routeDistanceRepository.calculateShortestPathBy(logistic.getMap(), logistic.getFrom(), logistic.getTo());
 	}
 }

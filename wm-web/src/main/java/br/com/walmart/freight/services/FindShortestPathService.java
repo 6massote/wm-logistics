@@ -4,6 +4,9 @@ import br.com.walmart.freight.models.Logistic;
 
 public interface FindShortestPathService {
 
-	public abstract Float baseOn(final Logistic logistic) throws Exception;
-	
+	/**
+	 * @return the shortest distance between the cities, or a negative value when there is no route
+	 */
+	Float baseOn(Logistic logistic);
+
 }

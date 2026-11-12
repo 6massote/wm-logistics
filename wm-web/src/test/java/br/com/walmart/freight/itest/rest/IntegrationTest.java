@@ -1,15 +1,15 @@
 package br.com.walmart.freight.itest.rest;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import com.jayway.restassured.path.json.JsonPath;
-import com.jayway.restassured.response.Response;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
 
 import br.com.walmart.freight.models.Logistic;
 import br.com.walmart.freight.models.RouteCity;
@@ -17,8 +17,8 @@ import br.com.walmart.freight.models.RouteMap;
 
 public class IntegrationTest extends AbstractIntegrationTest {
 
-	@Before
-	public void makeNodesAndRelationships() {		
+	@BeforeEach
+	void makeNodesAndRelationships() {		
 		final Set<RouteCity> routeCitiesSP = new HashSet<RouteCity>();
 		routeCitiesSP.add(new RouteCity("A", "B", 10f));
 		routeCitiesSP.add(new RouteCity("B", "D", 15.5f));
@@ -57,7 +57,7 @@ public class IntegrationTest extends AbstractIntegrationTest {
 	}
 	
 	@Test
-	public void callFreightCalculate() {
+	void callFreightCalculate() {
 		final Response response = this.doFreightRequest(new Logistic("SP", "A", "D", 10f, 2.5f));
 
 		assertEquals(200, response.getStatusCode());
@@ -70,7 +70,7 @@ public class IntegrationTest extends AbstractIntegrationTest {
 	}
 	
 	@Test
-	public void callFreightCalculateWithJsonRequest() {
+	void callFreightCalculateWithJsonRequest() {
 		final Response response = this.doFreightJSONRequest("{ \"map\": \"SP\", \"from\": \"A\", \"to\": \"D\", \"autonomy\": \"10\", \"price\": \"2.5\" }");
 		
 		assertEquals(200, response.getStatusCode());
@@ -82,4 +82,33 @@ public class IntegrationTest extends AbstractIntegrationTest {
 		assertEquals("Freight calc success...", jsonPath.get("messages[0]"));	
 	}
 	
+
+	@Test
+	void callFreightCalculateNoRouteBetweenCities() {
+		final Response response = this.doFreightRequest(new Logistic("SP", "A", "G", 10f, 2.5f));
+
+		assertEquals(400, response.getStatusCode());
+
+		final JsonPath jsonPath = new JsonPath(response.asString());
+
+		assertEquals(false, jsonPath.get("ok"));
+		assertEquals("error.freight.calculate.no_route_found", jsonPath.get("errors[0]"));
+	}
+
+	@Test
+	void callFreightCalculateIsolatesMaps() {
+		final Response response = this.doFreightRequest(new Logistic("RJ", "A", "D", 10f, 2.5f));
+
+		assertEquals(400, response.getStatusCode());
+	}
+
+	@Test
+	void callFreightCalculateNotInjectableMapName() {
+		final Response response = this.doFreightRequest(new Logistic("SP'}) MATCH (n) DETACH DELETE n //", "A", "D", 10f, 2.5f));
+
+		assertEquals(400, response.getStatusCode());
+		// The graph must be intact: the legitimate route still works.
+		assertEquals(200, this.doFreightRequest(new Logistic("SP", "A", "D", 10f, 2.5f)).getStatusCode());
+	}
+
 }

@@ -1,29 +1,27 @@
 package br.com.walmart.freight.repositories;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.util.Map;
 
-import org.springframework.stereotype.Service;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
-import br.com.walmart.core.factories.Neo4jConnectionFactory;
-
-@Service("routeCityRespository")
+@Repository("routeCityRespository")
 public class RouteCityRepositoryImpl implements RouteCityRepository {
-	
-	public boolean createOrUpdateBy(String map, String name) throws SQLException {
-		
-		final Statement stmt = Neo4jConnectionFactory.getStatement();
-		
-		ResultSet rs = stmt.executeQuery(RouteQueryHelper.buildRouteCityFind(map, name));
-		if (rs.next() && rs.getInt("count(r)") > 0) {
-			return false;
+
+	@Autowired
+	private Driver driver;
+
+	@Override
+	public boolean createOrUpdateBy(String map, String name) {
+		try (Session session = driver.session()) {
+			return session.executeWrite(tx -> tx
+					.run(RouteQueryHelper.ROUTE_CITY_MERGE, Map.<String, Object>of("map", map, "name", name))
+					.consume()
+					.counters()
+					.nodesCreated() > 0);
 		}
-		
-    	stmt.executeQuery(RouteQueryHelper.buildRouteCityCreate(map, name));
-	    
-	    return true;
-		
 	}
 
 }

@@ -21,7 +21,7 @@ public class Freight {
 	}
 	
 	public boolean isValid() {
-		return new Float("0").compareTo(getAmount()) <= 0;
+		return amount != null && amount >= 0f;
 	}
 
 }

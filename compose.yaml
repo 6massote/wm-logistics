@@ -1,0 +1,35 @@
+# docker compose up --build
+# API:           http://localhost:8080/wm-logistics
+# Neo4j Browser: http://localhost:7474
+services:
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-wm-logistics-dev}
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"$${NEO4J_AUTH#neo4j/}\" 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+
+  app:
+    build: .
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      SPRING_NEO4J_URI: bolt://neo4j:7687
+      SPRING_NEO4J_AUTHENTICATION_PASSWORD: ${NEO4J_PASSWORD:-wm-logistics-dev}
+      # Dev stack only: exposes POST /core/database/reset/neo4j
+      WM_DATABASE_RESET_ENABLED: "true"
+    ports:
+      - "8080:8080"
+
+volumes:
+  neo4j-data:

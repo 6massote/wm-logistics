@@ -3,9 +3,9 @@ package br.com.walmart.freight.models;
 import java.io.Serializable;
 import java.util.Set;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 
-import org.hibernate.validator.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 
 public class RouteMap implements Serializable {
 
