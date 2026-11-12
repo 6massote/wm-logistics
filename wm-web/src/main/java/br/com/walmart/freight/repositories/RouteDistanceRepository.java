@@ -1,5 +1,7 @@
 package br.com.walmart.freight.repositories;
 
+import java.util.List;
+
 public interface RouteDistanceRepository {
 
 	/**
@@ -8,8 +10,8 @@ public interface RouteDistanceRepository {
 	boolean createOrUpdateBy(String map, String from, String to, Float distance);
 
 	/**
-	 * @return the distance of the shortest path, or -1 when there is no path between the cities
+	 * @return every directed route of the map (empty when the map does not exist)
 	 */
-	Float calculateShortestPathBy(String map, String from, String to);
+	List<RouteEdge> findAllBy(String map);
 
 }

@@ -331,10 +331,11 @@ mvn clean install -DskipTests
 
 The application uses Cypher queries for graph operations. Key patterns used:
 
-1. **Finding Shortest Path** (in `RouteQueryHelper`):
-   - Uses Neo4j's built-in shortest path algorithms
-   - Filters by map name to isolate route networks
-   - Returns path with total distance
+1. **Finding Shortest Path** (`FindShortestPathServiceImpl`, Dijkstra in the service layer):
+   - `RouteQueryHelper.FIND_ROUTES_BY_MAP` loads the directed routes of one map (isolated by the `maps` property)
+   - Dijkstra runs in memory, O(E log V). Do NOT go back to a Cypher `[:CONNECTED_TO*]` path search:
+     it enumerates every path and is exponential (a 23-city dense map took 11 s, 40 cities never finishes)
+   - Same origin and destination costs 0 when the city exists in the map; unknown cities mean "no route"
 
 2. **Creating Routes**:
    - MERGE nodes to avoid duplicates
@@ -342,9 +343,9 @@ The application uses Cypher queries for graph operations. Key patterns used:
    - Use map property to segregate different route networks
 
 ### Repository Queries
-- Repositories execute Cypher queries via `session.query()`
+- Repositories run Cypher through `driver.session()` (`executeRead` / `executeWrite`)
 - Use parameterized queries to prevent injection
-- Return results as `Result` objects and map to domain models
+- Map records to small immutable types (e.g. the `RouteEdge` record) before leaving the repository
 
 ## Build Configuration
 

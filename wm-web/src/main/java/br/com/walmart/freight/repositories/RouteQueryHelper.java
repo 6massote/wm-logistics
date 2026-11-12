@@ -19,12 +19,11 @@ public final class RouteQueryHelper {
 			+ "MERGE (from)-[r:CONNECTED_TO]->(to) "
 			+ "SET r.distance = $distance";
 
-	public static final String CALCULATE_SHORTEST_PATH =
-			"MATCH (from:Location {maps: $map, name: $from}), (to:Location {maps: $map, name: $to}), "
-			+ "path = (from)-[rels:CONNECTED_TO*]->(to) "
-			+ "RETURN reduce(distance = 0.0, r IN rels | distance + r.distance) AS totalDistance "
-			+ "ORDER BY totalDistance ASC "
-			+ "LIMIT 1";
+	// The shortest path itself is computed in FindShortestPathServiceImpl (Dijkstra): Cypher can only
+	// enumerate every path to find the lightest one, which grows exponentially with the map size.
+	public static final String FIND_ROUTES_BY_MAP =
+			"MATCH (from:Location {maps: $map})-[r:CONNECTED_TO]->(to:Location {maps: $map}) "
+			+ "RETURN from.name AS from, to.name AS to, r.distance AS distance";
 
 	private RouteQueryHelper() {
 	}

@@ -4,15 +4,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.neo4j.driver.Driver;
-import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 @Repository("routeDistanceRespository")
 public class RouteDistanceRepositoryImpl implements RouteDistanceRepository {
-
-	private static final float NO_ROUTE = -1f;
 
 	@Autowired
 	private Driver driver;
@@ -33,15 +30,14 @@ public class RouteDistanceRepositoryImpl implements RouteDistanceRepository {
 	}
 
 	@Override
-	public Float calculateShortestPathBy(String map, String from, String to) {
-		final Map<String, Object> params = Map.of("map", map, "from", from, "to", to);
-
+	public List<RouteEdge> findAllBy(String map) {
 		try (Session session = driver.session()) {
-			final List<Record> records = session.executeRead(tx -> tx
-					.run(RouteQueryHelper.CALCULATE_SHORTEST_PATH, params)
-					.list());
-
-			return records.isEmpty() ? NO_ROUTE : (float) records.get(0).get("totalDistance").asDouble();
+			return session.executeRead(tx -> tx
+					.run(RouteQueryHelper.FIND_ROUTES_BY_MAP, Map.<String, Object>of("map", map))
+					.list(record -> new RouteEdge(
+							record.get("from").asString(),
+							record.get("to").asString(),
+							record.get("distance").asDouble())));
 		}
 	}
 

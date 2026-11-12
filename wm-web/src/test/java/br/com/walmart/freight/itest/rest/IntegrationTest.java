@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
@@ -109,6 +110,40 @@ public class IntegrationTest extends AbstractIntegrationTest {
 		assertEquals(400, response.getStatusCode());
 		// The graph must be intact: the legitimate route still works.
 		assertEquals(200, this.doFreightRequest(new Logistic("SP", "A", "D", 10f, 2.5f)).getStatusCode());
+	}
+
+
+	@Test
+	void callFreightCalculateSameOriginAndDestinationCostsNothing() {
+		final Response response = this.doFreightRequest(new Logistic("SP", "A", "A", 10f, 2.5f));
+
+		assertEquals(200, response.getStatusCode());
+		assertEquals(0f, new JsonPath(response.asString()).getFloat("models[0].amount"), 0);
+	}
+
+	@Test
+	void callFreightCalculateSameOriginAndDestinationUnknownCity() {
+		final Response response = this.doFreightRequest(new Logistic("SP", "Z", "Z", 10f, 2.5f));
+
+		assertEquals(400, response.getStatusCode());
+	}
+
+	@Test
+	@Timeout(30)
+	void callFreightCalculateOnDenseMap() {
+		// 30 nodes where every city reaches all the following ones: ~2^28 paths
+		final int nodes = 30;
+		final Set<RouteCity> routes = new HashSet<RouteCity>();
+		for (int i = 0; i < nodes; i++) {
+			for (int j = i + 1; j < nodes; j++) {
+				routes.add(new RouteCity("N" + i, "N" + j, (float) (1 + ((i * 7 + j * 3) % 5))));
+			}
+		}
+		assertEquals(200, doRouteMapRequest(new RouteMap("DENSE", routes)).getStatusCode());
+
+		final Response response = this.doFreightRequest(new Logistic("DENSE", "N0", "N" + (nodes - 1), 10f, 2.5f));
+
+		assertEquals(200, response.getStatusCode());
 	}
 
 }
