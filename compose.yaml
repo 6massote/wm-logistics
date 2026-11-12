@@ -4,6 +4,7 @@
 services:
   neo4j:
     image: neo4j:2026.10-community
+    restart: unless-stopped
     environment:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-wm-logistics-dev}
     ports:
@@ -20,6 +21,9 @@ services:
 
   app:
     build: .
+    # depends_on only orders the first "up"; after a restart or reboot the app may start before
+    # Neo4j is ready, fail fast and exit. The policy brings it back once Neo4j accepts connections.
+    restart: unless-stopped
     depends_on:
       neo4j:
         condition: service_healthy
