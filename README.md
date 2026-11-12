@@ -4,9 +4,9 @@ API REST que calcula a menor rota e o custo do frete entre cidades, usando um ba
 
 ### Tecnologias
 
-- Linguagem: Java 21 (LTS)
+- Linguagem: Java 25 (LTS)
 - Framework: Spring Boot 4.1 (Spring Framework 7, Spring MVC, Jakarta Validation)
-- Banco: Neo4j 5 Community (grafo), acessado via driver oficial (Bolt) com Cypher parametrizado
+- Banco: Neo4j 2026.10 Community (grafo), acessado via driver oficial (Bolt) com Cypher parametrizado
 - Build: Maven 3 (jar executável com Tomcat embutido, sem servidor de aplicação)
 - Testes: JUnit 5, REST Assured e Testcontainers (Neo4j real em Docker)
 - Execução: Docker + Docker Compose

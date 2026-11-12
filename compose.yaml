@@ -3,7 +3,7 @@
 # Neo4j Browser: http://localhost:7474
 services:
   neo4j:
-    image: neo4j:5-community
+    image: neo4j:2026.10-community
     environment:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-wm-logistics-dev}
     ports:

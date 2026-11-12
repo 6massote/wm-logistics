@@ -13,9 +13,8 @@ public class RouteMap implements Serializable {
 	
 	@NotEmpty(message = "error.route_map.name.not_empty")
 	private String name;
-	@Valid
 	@NotEmpty(message = "error.route_map.routes.not_empty")
-	private Set<RouteCity> routes;
+	private Set<@Valid RouteCity> routes;
 	
 	public RouteMap() {
 	}

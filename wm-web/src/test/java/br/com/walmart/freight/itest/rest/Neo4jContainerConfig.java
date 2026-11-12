@@ -16,7 +16,7 @@ class Neo4jContainerConfig {
 	@Bean
 	@ServiceConnection
 	Neo4jContainer neo4jContainer() {
-		return new Neo4jContainer("neo4j:5-community");
+		return new Neo4jContainer("neo4j:2026.10-community");
 	}
 
 }

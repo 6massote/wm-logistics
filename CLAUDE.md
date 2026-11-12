@@ -15,9 +15,9 @@
 ## Technology Stack
 
 ### Core Technologies
-- **Language**: Java 21 (LTS)
+- **Language**: Java 25 (LTS)
 - **Framework**: Spring Boot 4.1 (Spring Framework 7, Spring MVC), executable jar with embedded Tomcat
-- **Database**: Neo4j 5 Community (Graph Database), official Java driver over Bolt, parameterized Cypher
+- **Database**: Neo4j 2026.10 Community (Graph Database), official Java driver over Bolt, parameterized Cypher
 - **Runtime**: Docker + Docker Compose (`compose.yaml`, `Dockerfile`)
 - **Build Tool**: Maven 3
 - **Web Services**: REST with JSON (Jackson 3, managed by Spring Boot)
@@ -26,7 +26,7 @@
 - **Validation**: Jakarta Bean Validation (Hibernate Validator, managed by Spring Boot)
 - **Testing**:
   - JUnit 5 (unit tests)
-  - REST Assured 6 + Testcontainers (integration tests against a real Neo4j 5 in Docker)
+  - REST Assured 6 + Testcontainers (integration tests against a real Neo4j 2026.10 in Docker)
 
 ## Architecture
 
@@ -222,7 +222,7 @@ POST /database/reset
 ### Setting Up Development Environment
 
 1. **Prerequisites**:
-   - JDK 21 and Maven 3 (only to build/run outside Docker)
+   - JDK 25 and Maven 3 (only to build/run outside Docker)
    - Docker with Compose (runs Neo4j, and optionally the app; the integration tests need it too)
 
 2. **Neo4j Configuration**:
@@ -553,7 +553,7 @@ public class MyController {
 4. Add unit tests in `utest` package
 
 ### Debugging Neo4j Issues
-1. Check `spring.neo4j.*` / `SPRING_NEO4J_*` settings (URI is `bolt://`, not `http://`; Neo4j 5 needs a password of 8+ characters)
+1. Check `spring.neo4j.*` / `SPRING_NEO4J_*` settings (URI is `bolt://`, not `http://`; Neo4j needs a password of 8+ characters)
 2. Verify Cypher queries in `RouteQueryHelper` and the repository implementations
 3. Use Neo4j browser (http://localhost:7474) to test queries manually
 4. Check `docker compose logs neo4j app`
@@ -969,7 +969,7 @@ public void tearDown() {
 **Check:**
 ```bash
 # Java version
-java -version  # Should be 1.8.x
+java -version  # Should be 25.x
 
 # Maven version
 mvn -version   # Should be 3.x
